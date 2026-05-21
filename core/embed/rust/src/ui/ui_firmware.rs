@@ -470,6 +470,8 @@ pub trait FirmwareUI {
         description: TString<'static>,
         allow_cancel: bool,
         danger: bool,
+        footer: Option<TString<'static>>,
+        external_menu: Option<bool>,
     ) -> Result<Gc<LayoutObj>, Error>; // TODO: return LayoutMaybeTrace
 
     fn confirm_cancel() -> Result<impl LayoutMaybeTrace, Error>;
