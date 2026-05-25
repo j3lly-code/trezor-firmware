@@ -79,6 +79,7 @@ async def sign_auth_7702(
         TR.ethereum__all_evms if msg.chain_id == 0 else by_chain_id(msg.chain_id).name
     )
     account, account_path = get_account_and_path(msg.address_n)
+    assert account is not None and account_path is not None
 
     if is_revocation:
         await confirm_ethereum_revocation_7702(msg, account, account_path, network_name)

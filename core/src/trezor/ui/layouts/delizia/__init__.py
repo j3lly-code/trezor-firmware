@@ -1501,8 +1501,8 @@ if not utils.BITCOIN_ONLY:
 
     async def confirm_ethereum_revocation_7702(
         msg: EthereumSignAuth7702,
-        account: str | None,
-        account_path: str | None,
+        account: str,
+        account_path: str,
         network_name: str,
     ) -> None:
         from trezor.ui.layouts.menu import Menu, interact_with_menu
@@ -1558,8 +1558,8 @@ if not utils.BITCOIN_ONLY:
 
     async def confirm_ethereum_auth_7702(
         msg: EthereumSignAuth7702,
-        account: str | None,
-        account_path: str | None,
+        account: str,
+        account_path: str,
         delegate_name: str,
         network_name: str,
     ) -> None:
