@@ -1559,7 +1559,7 @@ if not utils.BITCOIN_ONLY:
         from trezor.ui.layouts.menu import Menu, interact_with_menu
 
         account_properties = _get_account_info_items(account, account_path)
-        account_properties.append((TR.cardano__nonce, str(msg.nonce), None))
+        account_properties.append((TR.words__nonce, str(msg.nonce), None))
         menu_items = [
             create_details(
                 TR.address_details__account_info,
@@ -1616,7 +1616,7 @@ if not utils.BITCOIN_ONLY:
 
         menu_items = []
         account_properties = _get_account_info_items(account, account_path)
-        account_properties.append((TR.cardano__nonce, str(msg.nonce), None))
+        account_properties.append((TR.words__nonce, str(msg.nonce), None))
         menu_items.append(
             create_details(
                 TR.address_details__account_info,

@@ -1511,7 +1511,7 @@ if not utils.BITCOIN_ONLY:
         account_properties: list[StrPropertyType] = (
             list(account_info_items[0][1]) if account_info_items else []
         )
-        account_properties.append((TR.cardano__nonce, str(msg.nonce), None))
+        account_properties.append((TR.words__nonce, str(msg.nonce), None))
 
         menu_items = [
             create_details(
@@ -1573,7 +1573,7 @@ if not utils.BITCOIN_ONLY:
         account_properties: list[StrPropertyType] = (
             list(account_info_items[0][1]) if account_info_items else []
         )
-        account_properties.append((TR.cardano__nonce, str(msg.nonce), None))
+        account_properties.append((TR.words__nonce, str(msg.nonce), None))
 
         menu_items = [
             create_details(

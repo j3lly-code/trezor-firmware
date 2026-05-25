@@ -1473,7 +1473,7 @@ if not utils.BITCOIN_ONLY:
         account_properties: list[StrPropertyType] = [
             (TR.words__account, account, None),
             (TR.address_details__derivation_path, account_path, None),
-            (TR.cardano__nonce, str(msg.nonce), None),
+            (TR.words__nonce, str(msg.nonce), None),
         ]
 
         menu_items = [
@@ -1520,7 +1520,7 @@ if not utils.BITCOIN_ONLY:
         account_properties: list[StrPropertyType] = [
             (TR.words__account, account, None),
             (TR.address_details__derivation_path, account_path, None),
-            (TR.cardano__nonce, str(msg.nonce), None),
+            (TR.words__nonce, str(msg.nonce), None),
         ]
 
         menu_items = [
