@@ -463,6 +463,7 @@ pub trait FirmwareUI {
 
     fn show_wait_text(text: TString<'static>) -> Result<impl LayoutMaybeTrace, Error>;
 
+    #[allow(clippy::too_many_arguments)]
     fn show_warning(
         title: TString<'static>,
         button: TString<'static>,
