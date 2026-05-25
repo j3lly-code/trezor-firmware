@@ -196,8 +196,7 @@ pub enum TranslatedString {
     words__network = 150,  // "Network"
     #[cfg(feature = "universal_fw")]
     cardano__no_output_tx = 151,  // "Transaction has no outputs, network cannot be verified."
-    #[cfg(feature = "universal_fw")]
-    cardano__nonce = 152,  // "Nonce"
+    words__nonce = 152,  // "Nonce"
     #[cfg(feature = "universal_fw")]
     cardano__other = 153,  // "Other"
     #[cfg(feature = "universal_fw")]
@@ -41934,8 +41933,6 @@ impl TranslatedString {
         #[cfg(feature = "universal_fw")]
         (Qstr::MP_QSTR_cardano__no_output_tx, Self::cardano__no_output_tx),
         #[cfg(feature = "universal_fw")]
-        (Qstr::MP_QSTR_cardano__nonce, Self::cardano__nonce),
-        #[cfg(feature = "universal_fw")]
         (Qstr::MP_QSTR_cardano__other, Self::cardano__other),
         #[cfg(feature = "universal_fw")]
         (Qstr::MP_QSTR_cardano__path, Self::cardano__path),
@@ -43256,6 +43253,7 @@ impl TranslatedString {
         (Qstr::MP_QSTR_words__name, Self::words__name),
         (Qstr::MP_QSTR_words__network, Self::words__network),
         (Qstr::MP_QSTR_words__no, Self::words__no),
+        (Qstr::MP_QSTR_words__nonce, Self::words__nonce),
         (Qstr::MP_QSTR_words__not_recommended, Self::words__not_recommended),
         (Qstr::MP_QSTR_words__note, Self::words__note),
         (Qstr::MP_QSTR_words__off, Self::words__off),

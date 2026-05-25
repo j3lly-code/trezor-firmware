@@ -440,7 +440,6 @@
     "cardano__multisig_path": "multi-sig path",
     "cardano__nested_scripts_template": "Contains {0} nested scripts.",
     "cardano__no_output_tx": "Transaction has no outputs, network cannot be verified.",
-    "cardano__nonce": "Nonce",
     "cardano__other": "Other",
     "cardano__path": "path",
     "cardano__pledge": "Pledge",
@@ -3129,6 +3128,7 @@
     "words__name": "Name",
     "words__network": "Network",
     "words__no": "No",
+    "words__nonce": "Nonce",
     "words__not_recommended": {
       "Bolt": "",
       "Caesar": "",

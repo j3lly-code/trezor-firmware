@@ -1033,7 +1033,7 @@ async def confirm_cvote_registration(
                 address_n_to_str(staking_path),
                 True,
             ),
-            (TR.cardano__nonce, str(nonce), True),
+            (TR.words__nonce, str(nonce), True),
         ]
     )
     if voting_purpose is not None:

@@ -1022,6 +1022,7 @@ static void _librust_qstrs(void) {
   MP_QSTR_words__name;
   MP_QSTR_words__network;
   MP_QSTR_words__no;
+  MP_QSTR_words__nonce;
   MP_QSTR_words__not_recommended;
   MP_QSTR_words__note;
   MP_QSTR_words__off;
@@ -1134,7 +1135,6 @@ static void _librust_qstrs(void) {
   MP_QSTR_cardano__multisig_path;
   MP_QSTR_cardano__nested_scripts_template;
   MP_QSTR_cardano__no_output_tx;
-  MP_QSTR_cardano__nonce;
   MP_QSTR_cardano__other;
   MP_QSTR_cardano__path;
   MP_QSTR_cardano__pledge;
