@@ -134,6 +134,25 @@ STATIC mp_obj_t mod_trezorcrypto_ed25519_sign_ext(mp_obj_t secret_scalar,
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(mod_trezorcrypto_ed25519_sign_ext_obj,
                                  mod_trezorcrypto_ed25519_sign_ext);
 
+/// def publickey_ext(secret_scalar: AnyBytes) -> bytes:
+///     """
+///     Computes public key from secret scalar without re-hashing.
+///     """
+STATIC mp_obj_t mod_trezorcrypto_ed25519_publickey_ext(mp_obj_t secret_scalar) {
+  mp_buffer_info_t sk = {0};
+  mp_get_buffer_raise(secret_scalar, &sk, MP_BUFFER_READ);
+  if (sk.len != 32) {
+    mp_raise_ValueError(MP_ERROR_TEXT("Invalid length of secret key"));
+  }
+  vstr_t pk = {0};
+  vstr_init_len(&pk, sizeof(ed25519_public_key));
+  ed25519_publickey_ext(*(const ed25519_secret_key *)sk.buf,
+                        *(ed25519_public_key *)pk.buf);
+  return mp_obj_new_str_from_vstr(&mp_type_bytes, &pk);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_trezorcrypto_ed25519_publickey_ext_obj,
+                                 mod_trezorcrypto_ed25519_publickey_ext);
+
 #endif
 
 /// def verify(
@@ -322,6 +341,10 @@ STATIC const mp_rom_map_elem_t mod_trezorcrypto_ed25519_globals_table[] = {
 #if !BITCOIN_ONLY
     {MP_ROM_QSTR(MP_QSTR_sign_ext),
      MP_ROM_PTR(&mod_trezorcrypto_ed25519_sign_ext_obj)},
+#endif
+#if !BITCOIN_ONLY
+    {MP_ROM_QSTR(MP_QSTR_publickey_ext),
+     MP_ROM_PTR(&mod_trezorcrypto_ed25519_publickey_ext_obj)},
 #endif
     {MP_ROM_QSTR(MP_QSTR_verify),
      MP_ROM_PTR(&mod_trezorcrypto_ed25519_verify_obj)},

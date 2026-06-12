@@ -1087,6 +1087,7 @@ impl<'a> MpyBuilder<'a> {
         files.remove(enums, "Tezos*.py");
         files.remove(enums, "Zcash*.py");
         files.remove(enums, "Tron*.py");
+        files.remove(enums, "Keeta*.py");
 
         if cfg!(feature = "pyopt") {
             files.remove(enums, "Debug*.py");
@@ -1209,6 +1210,8 @@ impl<'a> MpyBuilder<'a> {
 
             files.add(src, "apps/tron/*.py")?;
             files.add(src, "trezor/enums/Tron*.py")?;
+
+            files.add(src, "apps/keeta/*.py")?;
 
             files.add(src, "apps/ripple/*.py")?;
             files.add(src, "trezor/enums/Ripple*.py")?;

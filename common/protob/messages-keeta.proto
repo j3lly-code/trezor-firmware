@@ -1,0 +1,150 @@
+syntax = "proto2";
+package hw.trezor.messages.keeta;
+
+import "messages-common.proto";
+
+// Sugar for easier handling in Java
+option java_outer_classname = "TrezorMessageKeeta";
+option java_package = "com.satoshilabs.trezor.lib.protobuf";
+
+// Note: Do NOT include `option (include_in_bitcoin_only) = ...` at all.
+// All other altcoin proto files simply omit this option.
+
+enum KeetaAlgorithm {
+    SECP256K1 = 0;
+    ED25519 = 1;
+    NETWORK = 2;      // generated account
+    TOKEN = 3;         // generated account
+    STORAGE = 4;       // generated account
+    SECP256R1 = 6;
+    MULTISIG = 7;      // REJECT in signing — device cannot validate multi-party signing
+}
+// Note: Value 5 is reserved (gap).
+
+enum KeetaChunkPhase {
+    UNKNOWN = 0;  // Default value; explicitly reject if received
+    FIRST = 1;    // Initial chunk with derivation parameters
+    ADD = 2;      // Intermediate data chunks
+    LAST = 3;     // Final chunk, triggers signing
+}
+
+/**
+ * Request: Ask device for Keeta public key
+ * @start
+ * @next KeetaPublicKey
+ * @next Failure
+ */
+message KeetaGetPublicKey {
+    repeated uint32 address_n = 1;   // BIP-32 path
+    optional bool show_display = 2;  // optionally show on display
+    optional KeetaAlgorithm algorithm = 3;  // key algorithm
+}
+
+/**
+ * Response: Contains Keeta public key and address
+ * @end
+ */
+message KeetaPublicKey {
+    required bytes public_key = 1;
+    required string address = 2;
+}
+
+/**
+ * Request: Ask device for Keeta address
+ * @start
+ * @next KeetaAddress
+ * @next Failure
+ */
+message KeetaGetAddress {
+    repeated uint32 address_n = 1;
+    optional bool show_display = 2;
+    optional bool chunkify = 3;
+    optional KeetaAlgorithm algorithm = 4;
+}
+
+/**
+ * Response: Contains a Keeta address
+ * @end
+ */
+message KeetaAddress {
+    required string address = 1;
+    optional bytes mac = 2;  // HMAC-SHA3-256(address_bytes, session_key)
+}
+
+/**
+ * Request: Ask device to sign a Keeta block (streaming)
+ * @start
+ * @next KeetaBlockSignature
+ * @next Failure
+ */
+message KeetaSignBlock {
+    repeated uint32 address_n = 1;
+    optional KeetaAlgorithm algorithm = 2;
+    optional uint32 network_id = 3;
+    optional KeetaChunkPhase chunk_phase = 4;
+    optional bytes chunk_data = 5;
+    optional uint32 chunk_index = 7;  // prevents chunk reordering attacks
+}
+
+/**
+ * Response: Contains the block signature
+ * @end
+ */
+message KeetaBlockSignature {
+    required bytes signature = 1;
+}
+
+/**
+ * Request: Provide token metadata to the device
+ * @start
+ * @next Success
+ * @next Failure
+ */
+message KeetaProvideToken {
+    required bytes token_address = 1;  // exactly 33 bytes (compressed pubkey)
+    optional string symbol = 2;        // max 8 chars
+    optional uint32 decimals = 3;
+    optional uint32 chain_id = 4;
+    optional bytes signature = 5;      // ECDSA signature over DER-encoded TokenData
+}
+
+/**
+ * Request: Get Keeta firmware version info
+ * @start
+ * @next KeetaVersion
+ * @next Failure
+ */
+message KeetaGetVersion {
+}
+
+/**
+ * Response: Contains Keeta version info
+ * @end
+ */
+message KeetaVersion {
+    optional uint32 flags = 1;
+    optional uint32 major = 2;
+    optional uint32 minor = 3;
+    optional uint32 patch = 4;
+}
+
+/**
+ * Request: Ask device to sign a Keeta message (Phase 2)
+ * @start
+ * @next KeetaMessageSignature
+ * @next Failure
+ */
+message KeetaSignMessage {
+    repeated uint32 address_n = 1;
+    optional KeetaAlgorithm algorithm = 2;
+    optional bytes message = 3;
+    optional string namespace = 4;
+}
+
+/**
+ * Response: Contains the message signature (Phase 2)
+ * @end
+ */
+message KeetaMessageSignature {
+    required bytes signature = 1;
+}
