@@ -85,11 +85,11 @@ def _derive_public_key(private_key: bytes, algorithm: int) -> bytes:
     if algorithm == _ALGO_SECP256K1:
         from trezorcrypto import secp256k1
 
-        return secp256k1.publickey(private_key, compressed=True)
+        return secp256k1.publickey(private_key, True)
     elif algorithm == _ALGO_SECP256R1:
         from trezorcrypto import nist256p1
 
-        return nist256p1.publickey(private_key, compressed=True)
+        return nist256p1.publickey(private_key, True)
     elif algorithm == _ALGO_ED25519:
         from trezorcrypto import ed25519
 

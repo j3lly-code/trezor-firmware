@@ -189,11 +189,11 @@ class TestKeetaLayout(unittest.TestCase):
         """Same address for signer and account (edge case)."""
         mock_danger = MockAsync()
         mock_props = MockAsync()
-        with (
-            _patch_layout("show_danger", mock_danger),
-            _patch_layout("confirm_properties", mock_props),
-        ):
-            await_result(layout.confirm_delegate_signing("keeta_same", "keeta_same"))
+        with _patch_layout("show_danger", mock_danger):
+            with _patch_layout("confirm_properties", mock_props):
+                await_result(
+                    layout.confirm_delegate_signing("keeta_same", "keeta_same")
+                )
 
         props = _props(mock_props)
         signer_val = next(v for k, v, _ in props if k == "Signer")
@@ -385,15 +385,13 @@ class TestKeetaLayout(unittest.TestCase):
         mock_props = MockAsync()
         mock_text = MockAsync()
         signers = ["keeta_s1", "keeta_s2", "keeta_s3"]
-        with (
-            _patch_layout("confirm_properties", mock_props),
-            _patch_layout("confirm_text", mock_text),
-        ):
-            await_result(
-                layout.confirm_create_identifier_multisig(
-                    "keeta_acc", "MULTISIG", 2, signers
+        with _patch_layout("confirm_properties", mock_props):
+            with _patch_layout("confirm_text", mock_text):
+                await_result(
+                    layout.confirm_create_identifier_multisig(
+                        "keeta_acc", "MULTISIG", 2, signers
+                    )
                 )
-            )
 
         # Summary screen
         self.assertEqual(len(mock_props.calls), 1)
@@ -416,15 +414,13 @@ class TestKeetaLayout(unittest.TestCase):
         """Multisig with empty signer list."""
         mock_props = MockAsync()
         mock_text = MockAsync()
-        with (
-            _patch_layout("confirm_properties", mock_props),
-            _patch_layout("confirm_text", mock_text),
-        ):
-            await_result(
-                layout.confirm_create_identifier_multisig(
-                    "keeta_acc", "MULTISIG", 1, []
+        with _patch_layout("confirm_properties", mock_props):
+            with _patch_layout("confirm_text", mock_text):
+                await_result(
+                    layout.confirm_create_identifier_multisig(
+                        "keeta_acc", "MULTISIG", 1, []
+                    )
                 )
-            )
 
         props = _props(mock_props)
         self.assertIn(("Signers", "0 signer(s)", False), props)
@@ -518,13 +514,13 @@ class TestKeetaLayout(unittest.TestCase):
         """Balance modification: add (no danger screen)."""
         mock_props = MockAsync()
         mock_danger = MockAsync()
-        with (
-            _patch_layout("confirm_properties", mock_props),
-            _patch_layout("show_danger", mock_danger),
-        ):
-            await_result(
-                layout.confirm_modify_balance("keeta_acc", "keeta_tkn", "add", "100")
-            )
+        with _patch_layout("confirm_properties", mock_props):
+            with _patch_layout("show_danger", mock_danger):
+                await_result(
+                    layout.confirm_modify_balance(
+                        "keeta_acc", "keeta_tkn", "add", "100"
+                    )
+                )
 
         self.assertEqual(len(mock_danger.calls), 0)
         self.assertEqual(len(mock_props.calls), 1)
@@ -538,15 +534,13 @@ class TestKeetaLayout(unittest.TestCase):
         """Balance modification: subtract."""
         mock_props = MockAsync()
         mock_danger = MockAsync()
-        with (
-            _patch_layout("confirm_properties", mock_props),
-            _patch_layout("show_danger", mock_danger),
-        ):
-            await_result(
-                layout.confirm_modify_balance(
-                    "keeta_acc", "keeta_tkn", "subtract", "50"
+        with _patch_layout("confirm_properties", mock_props):
+            with _patch_layout("show_danger", mock_danger):
+                await_result(
+                    layout.confirm_modify_balance(
+                        "keeta_acc", "keeta_tkn", "subtract", "50"
+                    )
                 )
-            )
 
         self.assertEqual(len(mock_danger.calls), 0)
         props = _props(mock_props)
@@ -556,13 +550,13 @@ class TestKeetaLayout(unittest.TestCase):
         """Balance modification: set shows OVERWRITES danger."""
         mock_props = MockAsync()
         mock_danger = MockAsync()
-        with (
-            _patch_layout("confirm_properties", mock_props),
-            _patch_layout("show_danger", mock_danger),
-        ):
-            await_result(
-                layout.confirm_modify_balance("keeta_acc", "keeta_tkn", "set", "999")
-            )
+        with _patch_layout("confirm_properties", mock_props):
+            with _patch_layout("show_danger", mock_danger):
+                await_result(
+                    layout.confirm_modify_balance(
+                        "keeta_acc", "keeta_tkn", "set", "999"
+                    )
+                )
 
         self.assertEqual(len(mock_danger.calls), 1)
         self.assertIn("OVERWRITES", _content(mock_danger).upper())
@@ -697,12 +691,10 @@ class TestKeetaLayout(unittest.TestCase):
                 "hash_prefix": "a1b2c3",
             },
         ]
-        with (
-            _patch_layout("confirm_text", mock_text),
-            _patch_layout("confirm_blob", mock_blob),
-            patch(tz_layouts, "should_show_more", mock_should_show),
-        ):
-            await_result(layout.confirm_operation_summary(ops))
+        with _patch_layout("confirm_text", mock_text):
+            with _patch_layout("confirm_blob", mock_blob):
+                with patch(tz_layouts, "should_show_more", mock_should_show):
+                    await_result(layout.confirm_operation_summary(ops))
 
         text = _data(mock_text)
         self.assertIn("BLIND", text.upper())
@@ -727,12 +719,10 @@ class TestKeetaLayout(unittest.TestCase):
                 "hash_prefix": "deadbeef",
             },
         ]
-        with (
-            _patch_layout("confirm_text", mock_text),
-            _patch_layout("confirm_blob", mock_blob),
-            patch(tz_layouts, "should_show_more", mock_should_show),
-        ):
-            await_result(layout.confirm_operation_summary(ops))
+        with _patch_layout("confirm_text", mock_text):
+            with _patch_layout("confirm_blob", mock_blob):
+                with patch(tz_layouts, "should_show_more", mock_should_show):
+                    await_result(layout.confirm_operation_summary(ops))
 
         self.assertTrue(len(mock_should_show.calls) >= 1)
         self.assertTrue(len(mock_blob.calls) >= 1)

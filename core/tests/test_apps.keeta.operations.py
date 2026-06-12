@@ -54,6 +54,18 @@ if not utils.BITCOIN_ONLY:
 # ---------------------------------------------------------------------------
 
 
+def _bit_length(n: int) -> int:
+    """Return the number of bits needed to represent integer n.
+    Equivalent to n.bit_length() in CPython."""
+    if n < 0:
+        n = -n
+    bits = 0
+    while n:
+        n >>= 1
+        bits += 1
+    return bits
+
+
 def _make_address(algo: int = 0x00, fill: int = 0x01) -> bytes:
     """Create raw address bytes: algo_byte || pubkey.
 
@@ -84,7 +96,7 @@ def _encode_var_length(length: int) -> bytes:
     if length < 0x80:
         return bytes([length])
     # Convert length to big-endian bytes
-    len_bytes = length.to_bytes((length.bit_length() + 7) // 8, "big")
+    len_bytes = length.to_bytes((_bit_length(length) + 7) // 8, "big")
     return bytes([0x80 | len(len_bytes)]) + len_bytes
 
 
@@ -112,7 +124,7 @@ def _make_amount_bytes(value: int) -> bytes:
     if value == 0:
         return b"\x00"
     if value > 0:
-        result = value.to_bytes((value.bit_length() + 7) // 8, "big")
+        result = value.to_bytes((_bit_length(value) + 7) // 8, "big")
         # If MSB is set, add leading 0x00 to make it positive
         if result[0] & 0x80:
             result = b"\x00" + result
@@ -261,10 +273,10 @@ class TestKeetaOperationHelpers(unittest.TestCase):
         self.assertEqual(result, 128)
 
     def test_parse_amount_bytes_max_16(self):
-        """Parse the maximum 16-byte amount (u128 max = 2^128-1)."""
+        """Parse the maximum 16-byte amount (15 significant bytes + leading 0x00)."""
         data = b"\x00" + b"\xff" * 15  # 16 bytes with leading 0x00 for positivity
         result = _parse_amount_bytes(data)
-        expected = (1 << 128) - 1
+        expected = (1 << 120) - 1  # 15 significant bytes of 0xFF
         self.assertEqual(result, expected)
 
     def test_parse_amount_bytes_exceeds_16(self):
@@ -1973,9 +1985,9 @@ class TestKeetaOperationEdgeCases(unittest.TestCase):
         self.account = _make_address(0x00, 0x11)
 
     def test_max_amount_value(self):
-        """Parse the maximum u128 amount value (2^128-1)."""
-        # u128 max = 340282366920938463463374607431768211455
-        max_val = (1 << 128) - 1
+        """Parse the maximum amount value that fits in 16 DER INTEGER bytes."""
+        # Max value with 15 significant bytes + leading 0x00 = (2^120) - 1
+        max_val = (1 << 120) - 1
         amount_bytes = b"\x00" + b"\xff" * 15  # 16 bytes with leading 0x00
         tlv = _make_op_tlv(
             OP_SEND,

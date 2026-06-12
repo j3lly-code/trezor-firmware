@@ -102,6 +102,25 @@ def get_token_info(address: bytes) -> dict | None:
     return _cache.get(address)
 
 
+def set_token_info(address: bytes, symbol: str, decimals: int, chain_id: int) -> None:
+    """Manually set token metadata for testing or recovery.
+
+    Raises RuntimeError if the cache is locked (active signing).
+    Raises ValueError if the token address is already cached (immutable).
+    """
+    if _active_signing:
+        raise RuntimeError("Token provisioning not allowed during active signing")
+
+    if address in _cache:
+        raise ValueError("Token already cached -- immutable for session")
+
+    _cache[address] = {
+        "symbol": symbol,
+        "decimals": decimals,
+        "chain_id": chain_id,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle: active-signing lock
 # ---------------------------------------------------------------------------

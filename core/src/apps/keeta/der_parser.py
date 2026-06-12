@@ -70,29 +70,25 @@ TAG_CONSTRUCTED_OCTET_STRING = 0x24
 TAG_CONSTRUCTED_UTF8_STRING = 0x2C
 
 # Operation tags set for fast lookup
-OP_TAGS = frozenset(
-    {
-        OP_SEND,
-        OP_SET_REP,
-        OP_SET_INFO,
-        OP_MODIFY_PERMISSIONS,
-        OP_CREATE_IDENTIFIER,
-        OP_TOKEN_ADMIN_SUPPLY,
-        OP_TOKEN_ADMIN_MODIFY_BALANCE,
-        OP_RECEIVE,
-        OP_MANAGE_CERTIFICATE,
-    }
-)
+OP_TAGS = {
+    OP_SEND,
+    OP_SET_REP,
+    OP_SET_INFO,
+    OP_MODIFY_PERMISSIONS,
+    OP_CREATE_IDENTIFIER,
+    OP_TOKEN_ADMIN_SUPPLY,
+    OP_TOKEN_ADMIN_MODIFY_BALANCE,
+    OP_RECEIVE,
+    OP_MANAGE_CERTIFICATE,
+}
 
 # Tags allowed in trailing phase (signatures, extra data)
-TRAILING_ALLOWED_TAGS = frozenset(
-    {
-        TAG_BIT_STRING,  # V1 signature
-        TAG_SEQUENCE,  # V2 signatures container
-        TAG_OCTET_STRING,  # allowed trailing data
-        TAG_UTF8_STRING,  # allowed trailing data
-    }
-)
+TRAILING_ALLOWED_TAGS = {
+    TAG_BIT_STRING,  # V1 signature
+    TAG_SEQUENCE,  # V2 signatures container
+    TAG_OCTET_STRING,  # allowed trailing data
+    TAG_UTF8_STRING,  # allowed trailing data
+}
 
 
 class _Phase:
@@ -166,9 +162,9 @@ class DerParser:
         # Final state
         self.block_complete = False
         self.error_message = None
+        self._extra_data_trailing = False
 
         # WalkHeaderFields tracking
-        self._walk_seq_count = 0  # SEQUENCE counter for V2
 
     # ----------------------------------------------------------------
     # Public API
@@ -184,8 +180,12 @@ class DerParser:
 
         if self.phase in (_Phase.Failed,):
             raise DerParserError(self.error_message or "Parser in failed state")
-        if self.phase in (_Phase.CompleteBlock,) or self.block_complete:
-            raise DerParserError("Block already complete")
+        if self.block_complete:
+            if self._extra_data_trailing:
+                self._set_error("Trailing data after block complete")
+            if len(data) > 0:
+                raise DerParserError("Block already complete")
+            return []
 
         self.chunk_count += 1
         reparse: bool = False
@@ -193,6 +193,10 @@ class DerParser:
 
         data_iter = iter(data)
         while True:
+            # Check terminal states before consuming next byte
+            if self.phase in (_Phase.Failed, _Phase.CompleteBlock):
+                break
+
             if reparse:
                 byte = reparse_byte
                 reparse = False
@@ -209,10 +213,6 @@ class DerParser:
                 break
             if self.chunk_count > MAX_CHUNKS:
                 self._set_error("Block exceeds maximum chunks")
-                break
-            if self.phase == _Phase.Failed:
-                break
-            if self.phase == _Phase.CompleteBlock:
                 break
 
             # --- Phase dispatch ---
@@ -245,6 +245,12 @@ class DerParser:
 
             elif self.phase == _Phase.Trailing:
                 self._handle_trailing(byte)
+
+        # Check for unconsumed trailing data after CompleteBlock
+        if self.phase == _Phase.CompleteBlock:
+            remaining = list(data_iter)
+            if remaining:
+                self._extra_data_trailing = True
 
         # Empty chunk handling (LAST chunk with zero data bytes)
         if len(data) == 0 and self.phase not in (_Phase.Failed, _Phase.CompleteBlock):
@@ -333,6 +339,7 @@ class DerParser:
                     _Phase.ReadOpsHeader,
                 ):
                     self.phase = _Phase.CompleteBlock
+                    self.block_complete = True
 
     # ----------------------------------------------------------------
     # Header accumulation (shared)
@@ -374,6 +381,9 @@ class DerParser:
                     self.content_length = int.from_bytes(length_bytes, "big")
                     self.header_size = 2 + num_len_bytes
                     # Non-minimal length check
+                    if length_bytes[0] == 0:
+                        self._set_error("Non-minimal length encoding")
+                        return False
                     if num_len_bytes == 1 and self.content_length < 0x80:
                         self._set_error("Non-minimal length encoding")
                         return False
@@ -408,6 +418,8 @@ class DerParser:
         if self._accumulate_header(byte):
             self.container_remaining = self.content_length
             self.depth += 1  # Entered outer container
+            if self.depth > MAX_DER_DEPTH:
+                self._set_error("DER depth exceeds maximum")
             self.phase = _Phase.WalkHeaderFields
             self._reset_header()
 
@@ -466,29 +478,33 @@ class DerParser:
             self.field_tag = tag
 
             if tag == TAG_SEQUENCE:
-                # SEQUENCE container — enter it
-                if not self._enter_sequence(self.header_size, self.content_length):
-                    return False
-
-                self._walk_seq_count += 1
-
+                # Determine if this SEQUENCE is the operations SEQUENCE.
+                # V1: ops SEQUENCE is the first (and only) SEQUENCE
+                #     encountered at depth 1
+                # V2: ops SEQUENCE is at depth 2 AND fills the remainder
+                #     of the inner container (it's the last field)
                 if self.version == 1:
-                    # V1: this SEQUENCE is the ops SEQUENCE
-                    # (outer SEQUENCE was consumed in DetectVersion)
+                    is_ops = self.depth == 1
+                else:  # version == 2
+                    is_ops = self.depth == 2 and tlv_total == self.container_remaining
+
+                if is_ops:
+                    # Enter the ops SEQUENCE
+                    if not self._enter_sequence(self.header_size, self.content_length):
+                        return False
+                    ops_is_empty = self.content_length == 0
                     self._reset_header()
                     self.phase = _Phase.ReadOpsHeader
+                    if ops_is_empty:
+                        self._container_exhausted()
                     return False
                 else:
-                    # V2
-                    if self._walk_seq_count == 1:
-                        # Inner SEQUENCE — enter and continue walking
-                        self._reset_header()
-                        return False  # Not a dispatchable field
-                    else:
-                        # Second SEQUENCE = ops SEQUENCE
-                        self._reset_header()
-                        self.phase = _Phase.ReadOpsHeader
+                    # Nested container (inner SEQUENCE, signer SEQUENCE,
+                    # participants SEQUENCE, etc.)
+                    if not self._enter_sequence(self.header_size, self.content_length):
                         return False
+                    self._reset_header()
+                    return False
             else:
                 # Primitive field — accumulate content
                 self.field_buf = bytearray()
@@ -733,9 +749,10 @@ class DerParser:
             self._last_trail_tlv_total = tlv_total
             self.field_content_remaining = self.content_length
             self.field_tag = tag
+            content_len = self.content_length
             self._reset_header()
 
-            if self.content_length == 0:
+            if content_len == 0:
                 # Zero-length trailing TLV
                 self.container_remaining -= tlv_total
                 if self.container_remaining == 0:
@@ -772,6 +789,7 @@ class DerParser:
             self._set_error("Incomplete block")
         elif self.phase == _Phase.Trailing:
             self.phase = _Phase.CompleteBlock
+            self.block_complete = True
 
     # ----------------------------------------------------------------
     # Validation helpers
@@ -848,6 +866,7 @@ class DerParser:
         return True
 
     def _set_error(self, msg: str) -> None:
-        """Transition to Failed phase with an error message."""
+        """Transition to Failed phase with an error message and raise."""
         self.phase = _Phase.Failed
         self.error_message = msg
+        raise DerParserError(msg)

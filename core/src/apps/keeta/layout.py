@@ -15,6 +15,11 @@ from trezor.ui.layouts import (
     show_warning,
 )
 
+try:
+    from ubinascii import hexlify
+except ImportError:
+    from binascii import hexlify
+
 
 async def confirm_signing_interrupted() -> None:
     """Show warning that prior signing was interrupted."""
@@ -188,7 +193,7 @@ async def confirm_block_header(
     ]
     if previous_hash:
         props.append(
-            ("Previous Hash", previous_hash.hex(), True),
+            ("Previous Hash", hexlify(previous_hash).decode(), True),
         )
 
     await confirm_properties(
@@ -363,7 +368,7 @@ async def confirm_token_admin(
     """Token admin supply confirmation (mint/burn)."""
     await confirm_properties(
         "confirm_token_admin",
-        f"Token Admin: {action.title()}",
+        f"Token Admin: {(action[0].upper() + action[1:]) if action else action}",
         [
             ("Account", account, True),
             ("Action", action, False),

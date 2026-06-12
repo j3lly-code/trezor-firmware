@@ -43,9 +43,22 @@ from apps.keeta.constants import (
 from apps.keeta.token_cache import get_token_symbol
 
 try:
-    from ubinascii import a2b_base64
+    from ubinascii import a2b_base64, hexlify
 except ImportError:
-    from binascii import a2b_base64
+    from binascii import a2b_base64, hexlify
+
+
+def _bit_length(n: int) -> int:
+    """Return the number of bits needed to represent integer n (MicroPython compat).
+    Equivalent to n.bit_length() in CPython."""
+    if n < 0:
+        n = -n
+    bits = 0
+    while n:
+        n >>= 1
+        bits += 1
+    return bits
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -92,7 +105,7 @@ _METADATA_STATE_NAMES = {0: "Empty", 1: "Decoded", 2: "Unknown", 3: "Invalid"}
 
 # Whitelist: valid permission bit positions (from Keeta SDK permission defs)
 # Bits 0-15 are defined; bits 16+ are reserved and must be rejected
-_VALID_PERMISSION_BITS = frozenset(range(16))
+_VALID_PERMISSION_BITS = set(range(16))
 
 _PERMISSION_BIT_NAMES = {
     0: "ACCESS",
@@ -184,7 +197,7 @@ def _read_tlv_header(data: bytes, pos: int) -> tuple[int, int, int]:
         for _ in range(num_len_bytes):
             length = (length << 8) | data[pos]
             pos += 1
-        if num_len_bytes > 1 and length < 0x80:
+        if length < 0x80:
             raise wire.DataError("Non-minimal DER length encoding")
 
     return tag, length, pos
@@ -310,18 +323,18 @@ def _sanitize_utf8(data: bytes) -> str:
     are allowed. Rejects control characters, zero-width characters,
     bidi overrides, math alphanumerics, and variation selectors.
     """
-    sanitized = bytearray()
+    sanitized = []
     for byte in data:
         if _MIN_PRINTABLE_ASCII <= byte <= _MAX_PRINTABLE_ASCII:
-            sanitized.append(byte)
+            sanitized.append(chr(byte))
         elif _MIN_LATIN1_SUPPLEMENT <= byte <= _MAX_LATIN1_SUPPLEMENT:
-            sanitized.append(byte)
+            sanitized.append(chr(byte))
         elif byte in (0x09, 0x0A, 0x0D):  # Tab, LF, CR
-            sanitized.append(0x20)  # Replace with space
+            sanitized.append(" ")  # Replace with space
         else:
             raise wire.DataError(f"Invalid UTF-8 character code: 0x{byte:02x}")
 
-    return sanitized.decode("utf-8")
+    return "".join(sanitized)
 
 
 # ---------------------------------------------------------------------------
@@ -415,7 +428,7 @@ def _make_blind_display(tag: int, tlv_bytes: bytes) -> OperationDisplay:
     index, byte count, and first 8 hex chars of SHA3-256 hash.
     """
     digest = sha3_256(tlv_bytes, keccak=False).digest()
-    hash_preview = digest[:4].hex()  # First 8 hex chars = 4 bytes
+    hash_preview = hexlify(digest[:4]).decode()  # First 8 hex chars = 4 bytes
 
     warnings = []
     if tag == OP_MANAGE_CERTIFICATE:
@@ -680,7 +693,7 @@ def _decode_set_info_metadata(data: bytes, warnings: list) -> str:
     # Try UTF-8 decode
     try:
         text = decoded.decode("utf-8")
-    except UnicodeDecodeError:
+    except (UnicodeError, ValueError):
         warnings.append("SET_INFO metadata: decoded but not valid UTF-8 (blind signed)")
         return "Unknown"
 
