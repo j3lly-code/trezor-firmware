@@ -9,8 +9,9 @@ References:
     - Ledger device application: crypto/kdf.rs
 """
 
-from trezor.crypto import bip32
 from trezorcrypto import sha3_256 as _c_sha3_256
+
+from trezor.crypto import bip32
 
 from apps.common import seed as seed_module
 
@@ -204,6 +205,36 @@ async def derive_keeta_key(
         ValueError: If algorithm is not supported.
         KeyDerivationError: If HKDF retry is exhausted.
     """
+    private_key, _ = await _derive_key_with_seed(address_n, account_index, algorithm)
+    return private_key
+
+
+async def derive_keeta_key_with_seed(
+    address_n: list[int],
+    account_index: int,
+    algorithm: int,
+) -> tuple[bytes, bytes]:
+    """Full Keeta key derivation returning both private key and keeta_seed.
+
+    Same as derive_keeta_key() but also returns the keeta_seed, which is
+    needed for ed25519 signing (deterministic nonce extension via
+    derive_ed25519_nonce_extension).
+
+    Returns:
+        (private_key, keeta_seed) tuple, each 32 bytes.
+    """
+    return await _derive_key_with_seed(address_n, account_index, algorithm)
+
+
+async def _derive_key_with_seed(
+    address_n: list[int],
+    account_index: int,
+    algorithm: int,
+) -> tuple[bytes, bytes]:
+    """Internal: shared implementation for derive_keeta_key and derive_keeta_key_with_seed.
+
+    Returns (private_key, keeta_seed).
+    """
     # Step 1: Obtain BIP-32 seed (async — incorporates passphrase)
     seed_bytes = await seed_module.get_seed()
     if not isinstance(seed_bytes, (bytes, bytearray)):
@@ -234,7 +265,7 @@ async def derive_keeta_key(
     else:
         raise ValueError("Unsupported algorithm: {}".format(algorithm))
 
-    return private_key
+    return private_key, keeta_seed
 
 
 async def derive_and_cleanup(
