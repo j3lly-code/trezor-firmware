@@ -211,7 +211,7 @@ def test_sign_v1_all_op_types(session):
         ),
         make_token_admin_supply_op(account=account_field, action=0, amount=10000),
         make_token_admin_modify_balance_op(
-            account=account_field, action=0, amount=5000
+            account=account_field, action=0, amount=5000, token=DUMMY_ACCOUNT
         ),
         make_receive_op(account=account_field, from_account=DUMMY_ACCOUNT, amount=200),
         make_manage_certificate_op(data=b"cert-data"),
@@ -317,7 +317,7 @@ def test_sign_v2_all_op_types(session):
         ),
         make_token_admin_supply_op(account=account_field, action=0, amount=20000),
         make_token_admin_modify_balance_op(
-            account=account_field, action=0, amount=8000
+            account=account_field, action=0, amount=8000, token=DUMMY_ACCOUNT
         ),
         make_receive_op(account=account_field, from_account=DUMMY_ACCOUNT, amount=300),
         make_manage_certificate_op(data=b"v2-cert"),
@@ -951,7 +951,7 @@ def test_reject_missing_address_n(session):
     from trezorlib.messages import KeetaChunkPhase
 
     with pytest.raises(TrezorFailure):
-        session.write(
+        session.call(
             messages.KeetaSignBlock(
                 address_n=None,
                 algorithm=ALGO_SECP256K1_ENUM,
@@ -968,7 +968,7 @@ def test_reject_missing_network_id(session):
     from trezorlib.messages import KeetaChunkPhase
 
     with pytest.raises(TrezorFailure):
-        session.write(
+        session.call(
             messages.KeetaSignBlock(
                 address_n=BIP32_PATH,
                 algorithm=ALGO_SECP256K1_ENUM,
@@ -985,7 +985,7 @@ def test_reject_unknown_chunk_phase(session):
     from trezorlib.messages import KeetaChunkPhase
 
     with pytest.raises(TrezorFailure):
-        session.write(
+        session.call(
             messages.KeetaSignBlock(
                 address_n=BIP32_PATH,
                 algorithm=ALGO_SECP256K1_ENUM,
@@ -1022,7 +1022,7 @@ def test_reject_chunk_index_mismatch(session):
         operations=[send_op],
     )
 
-    # Send FIRST
+    # Send FIRST (write — handler suspends on ctx.wait(), no response sent)
     chunk1, rest = block[:50], block[50:]
     session.write(
         messages.KeetaSignBlock(
@@ -1038,7 +1038,7 @@ def test_reject_chunk_index_mismatch(session):
     # Send ADD with wrong index (0 instead of 1)
     add_chunks = [rest[:30], rest[30:]]
     with pytest.raises(TrezorFailure):
-        session.write(
+        session.call(
             messages.KeetaSignBlock(
                 chunk_phase=KeetaChunkPhase.ADD,
                 chunk_index=0,
@@ -1052,7 +1052,7 @@ def test_reject_first_chunk_wrong_index(session):
     from trezorlib.messages import KeetaChunkPhase
 
     with pytest.raises(TrezorFailure):
-        session.write(
+        session.call(
             messages.KeetaSignBlock(
                 address_n=BIP32_PATH,
                 algorithm=ALGO_SECP256K1_ENUM,
@@ -1069,7 +1069,7 @@ def test_reject_add_without_first(session):
     from trezorlib.messages import KeetaChunkPhase
 
     with pytest.raises(TrezorFailure):
-        session.write(
+        session.call(
             messages.KeetaSignBlock(
                 chunk_phase=KeetaChunkPhase.ADD,
                 chunk_index=0,
@@ -1181,25 +1181,19 @@ def test_cleanup_after_error(session):
         amount=100000,
     )
 
-    # First send a deliberately broken block (garbage)
-    session.write(
-        messages.KeetaSignBlock(
-            address_n=BIP32_PATH,
-            algorithm=ALGO_SECP256K1_ENUM,
-            network_id=NETWORK_ID_TEST,
-            chunk_phase=KeetaChunkPhase.FIRST,
-            chunk_index=0,
-            chunk_data=b"\x00\x00\x00",
-        )
-    )
+    # Send garbage FIRST via call() — the handler errors during DER parsing,
+    # _cleanup() runs in the finally block, the Failure is returned and
+    # consumed by call(). No buffered responses remain on the transport.
     with pytest.raises(TrezorFailure):
         session.call(
             messages.KeetaSignBlock(
-                chunk_phase=KeetaChunkPhase.LAST,
-                chunk_index=1,
-                chunk_data=b"",
-            ),
-            expect=messages.KeetaBlockSignature,
+                address_n=BIP32_PATH,
+                algorithm=ALGO_SECP256K1_ENUM,
+                network_id=NETWORK_ID_TEST,
+                chunk_phase=KeetaChunkPhase.FIRST,
+                chunk_index=0,
+                chunk_data=b"\x00\x00\x00",
+            )
         )
 
     # Now a valid sign should work (cleanup happened)

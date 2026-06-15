@@ -298,14 +298,17 @@ def make_token_admin_supply_op(
     account: Optional[bytes] = None,
     action: int = 0,  # 0=Mint, 1=Burn, 2=Set
     amount: int = 1000000,
+    token: Optional[bytes] = None,
 ) -> tuple[int, bytes]:
-    """TOKEN_ADMIN_SUPPLY (0xA5). [0]=account, [1]=action, [2]=amount."""
+    """TOKEN_ADMIN_SUPPLY (0xA5). [0]=account, [1]=action, [2]=amount, [3]=token?"""
     children: list[bytes] = []
     if account is not None:
         children.append(_make_tlv(0x80, account))
     children.append(_make_tlv(0x81, bytes([action & 0xFF])))
     amount_bytes = amount.to_bytes((amount.bit_length() + 7) // 8 or 1, "big")
     children.append(_make_tlv(0x82, amount_bytes))
+    if token is not None:
+        children.append(_make_tlv(0x83, token))
     tag = OP_TOKEN_ADMIN_SUPPLY
     return tag, _make_tlv(tag, b"".join(children))
 

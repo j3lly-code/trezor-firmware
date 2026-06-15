@@ -334,8 +334,10 @@ async def sign_block(msg: "KeetaSignBlock") -> "KeetaBlockSignature":
     if msg.chunk_phase == KeetaChunkPhase.UNKNOWN:
         raise wire.DataError("Unknown chunk phase")
 
-    # Session restart: if FIRST arrives while _active, clean up and restart
-    if msg.chunk_phase == KeetaChunkPhase.FIRST and _active:
+    # Guard: clean up any residual stale state from a previous session.
+    # Covers both "FIRST while active" (normal session restart) and
+    # "non-FIRST while active" (should not happen, but defensive).
+    if _active:
         _cleanup()
 
     # ======================================================================

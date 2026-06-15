@@ -19,7 +19,6 @@ async def get_address(msg: KeetaGetAddress) -> KeetaAddress:
     from apps.common.paths import (
         PathSchema,
         address_n_to_str,
-        show_path_warning,
         unharden,
     )
 
@@ -39,7 +38,7 @@ async def get_address(msg: KeetaGetAddress) -> KeetaAddress:
     schemas = [PathSchema.parse(p, SLIP44_ID) for p in PATTERNS]
     path_valid = any(s.match(msg.address_n) for s in schemas)
     if not path_valid:
-        await show_path_warning(msg.address_n)
+        raise wire.DataError("Forbidden key path")
 
     # 3. Extract account_index (last element of path)
     account_index = unharden(msg.address_n[-1])
