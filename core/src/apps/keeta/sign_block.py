@@ -315,7 +315,7 @@ async def sign_block(msg: "KeetaSignBlock") -> "KeetaBlockSignature":
     from trezor import wire
     from trezor.crypto.hashlib import sha3_256
     from trezor.enums import KeetaChunkPhase, MessageType
-    from trezor.messages import KeetaBlockSignature
+    from trezor.messages import KeetaBlockSignature, KeetaSignBlock
     from trezor.wire.context import get_context
 
     from .constants import SESSION_TIMEOUT_MS

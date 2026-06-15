@@ -38,7 +38,7 @@ TAG_CONTEXT_1 = 0xA1
 NETWORK_ID_TEST = 0x54455354  # "TEST"
 NETWORK_ID_MAIN = 0x5382
 
-DUMMY_ACCOUNT = bytes([0x00, 0x02]) + bytes(31)  # 33 bytes
+DUMMY_ACCOUNT = bytes([0x00]) + bytes([0x02]) + bytes(32)  # 1 algo byte + 33 compressed pubkey = 34 bytes
 
 
 def _encode_der_length(length: int) -> bytes:

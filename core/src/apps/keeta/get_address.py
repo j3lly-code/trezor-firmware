@@ -55,12 +55,12 @@ async def get_address(msg: KeetaGetAddress) -> KeetaAddress:
         if algorithm == ALGO_SECP256K1:
             from trezorcrypto import secp256k1
 
-            pubkey = secp256k1.publickey(private_key, compressed=True)  # 33 bytes
+            pubkey = secp256k1.publickey(private_key, True)  # 33 bytes
 
         elif algorithm == ALGO_SECP256R1:
             from trezorcrypto import nist256p1
 
-            pubkey = nist256p1.publickey(private_key, compressed=True)  # 33 bytes
+            pubkey = nist256p1.publickey(private_key, True)  # 33 bytes
 
         elif algorithm == ALGO_ED25519:
             from trezorcrypto import ed25519

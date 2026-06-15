@@ -252,7 +252,7 @@ async def _derive_key_with_seed(
     # Keeta needs UNCOMPRESSED 65-byte format (0x04 || x || y).
     # Use secp256k1.publickey() with compressed=False to get the 65-byte form.
     private_key_bytes = bip32_node.private_key()
-    uncompressed_pubkey = secp256k1.publickey(private_key_bytes, compressed=False)
+    uncompressed_pubkey = secp256k1.publickey(private_key_bytes, False)
     keeta_seed = sha3_256_nist(uncompressed_pubkey)  # 32 bytes
 
     # Step 3: Derive per-index key by algorithm
@@ -298,7 +298,7 @@ async def derive_and_cleanup(
         bip32_node.derive_path(address_n)
 
         private_key_bytes = bip32_node.private_key()
-        uncompressed_pubkey = secp256k1.publickey(private_key_bytes, compressed=False)
+        uncompressed_pubkey = secp256k1.publickey(private_key_bytes, False)
         keeta_seed = sha3_256_nist(uncompressed_pubkey)
 
         if algorithm == 0x00:

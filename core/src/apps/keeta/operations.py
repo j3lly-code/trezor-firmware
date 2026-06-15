@@ -25,7 +25,7 @@ on the operation type and field tag number.
 from trezor import wire
 from trezor.crypto.hashlib import sha3_256
 
-from apps.keeta.address import encode_address
+from apps.keeta.address import _ALGO_PUBKEY_SIZE, encode_address
 from apps.keeta.constants import (
     OP_BUF_SIZE,
     OP_CREATE_IDENTIFIER,
@@ -304,11 +304,19 @@ def _parse_unsigned_amount(data: bytes) -> int:
 
 def _format_address(data: bytes) -> str:
     """Convert raw address bytes (algo_byte || pubkey) to Keeta address string."""
-    if len(data) < 33:
+    if len(data) < 2:
         raise wire.DataError(f"Address data too short: {len(data)} bytes")
 
     algo_byte = data[0]
     pubkey = data[1:]
+
+    expected_pubkey_size = _ALGO_PUBKEY_SIZE.get(algo_byte, 32)
+    if len(data) < 1 + expected_pubkey_size:
+        raise wire.DataError(
+            "Address data too short for algorithm 0x%02x: "
+            "%d bytes, expected at least %d"
+            % (algo_byte, len(data), 1 + expected_pubkey_size)
+        )
 
     try:
         return encode_address(pubkey, algo_byte)
