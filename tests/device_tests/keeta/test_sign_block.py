@@ -364,7 +364,7 @@ def test_sign_v2_delegate_signer(session):
         operations=[send_op],
     )
     sig = _sign_block_with_confirm(
-        session, BIP32_PATH, ALGO_SECP256K1_ENUM, NETWORK_ID_TEST, block
+        session, BIP32_PATH_ACCT_5, ALGO_SECP256K1_ENUM, NETWORK_ID_TEST, block
     )
     assert len(sig) == 64
 

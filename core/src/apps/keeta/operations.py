@@ -399,7 +399,7 @@ def _format_permissions(mask: int, warnings: list) -> str:
     of permission names.
     """
     # Check for undefined bits outside the 0-15 whitelist
-    if mask >> 15:
+    if mask >> 16:
         raise wire.DataError(
             f"Permission bitmask contains undefined bits: 0x{mask:016x}"
         )

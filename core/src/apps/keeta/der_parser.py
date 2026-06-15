@@ -130,6 +130,7 @@ class DerParser:
         self.version = None  # int: 1 or 2
         self.network_id = None  # bytes or None
         self.account = None  # bytes or None
+        self.signer = None  # bytes or None (V2 only)
 
         # Container tracking (stack for nested SEQUENCE containers)
         self.container_remaining = 0
@@ -569,9 +570,11 @@ class DerParser:
                 self.account = content
             # Subsequent 04 (prev_hash) are skipped
         else:
-            # V2: first 04 = account, second 04 = signer (skip)
+            # V2: first 04 = account, second 04 = signer
             if self.account is None:
                 self.account = content
+            elif self.signer is None:
+                self.signer = content
 
     def _reset_field_state(self) -> None:
         """Clear field accumulation state after dispatch."""

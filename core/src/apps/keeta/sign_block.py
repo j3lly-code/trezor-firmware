@@ -475,20 +475,39 @@ async def sign_block(msg: "KeetaSignBlock") -> "KeetaBlockSignature":
         assert _algorithm is not None  # guaranteed by FIRST branch
         derived_pubkey = _derive_public_key(bytes(_private_key), _algorithm)
 
-        # Compare with block account from parser
-        # block.account is raw OCTET STRING: algo_byte(1) || pubkey(32 or 33)
-        account_bytes = bytes(_parser.account)
-        if len(account_bytes) < 1:
-            raise wire.DataError("Account field too short")
-        block_pubkey = account_bytes[1:]
+        # Determine which field to validate the derived key against
+        # V2 blocks with a signer field use delegate signing
+        if _parser.version == 2 and _parser.signer is not None and len(bytes(_parser.signer)) > 0:
+            # Delegate signing: validate derived key against signer field
+            signer_bytes = bytes(_parser.signer)
+            if len(signer_bytes) < 1:
+                raise wire.DataError("Signer field too short")
+            block_pubkey = signer_bytes[1:]
 
-        if derived_pubkey != block_pubkey:
-            raise wire.DataError("Account mismatch")
+            if derived_pubkey != block_pubkey:
+                raise wire.DataError("Signer mismatch")
 
-        # Encode the signing account address for display
-        from .address import encode_address
+            # For display, show the account address being managed as delegate
+            account_bytes = bytes(_parser.account)
+            if len(account_bytes) < 1:
+                raise wire.DataError("Account field too short")
+            account_pubkey = account_bytes[1:]
+            from .address import encode_address
 
-        address = encode_address(derived_pubkey, _algorithm)
+            address = encode_address(account_pubkey, _algorithm)
+        else:
+            # Standard signing: validate against account field
+            account_bytes = bytes(_parser.account)
+            if len(account_bytes) < 1:
+                raise wire.DataError("Account field too short")
+            block_pubkey = account_bytes[1:]
+
+            if derived_pubkey != block_pubkey:
+                raise wire.DataError("Account mismatch")
+
+            from .address import encode_address
+
+            address = encode_address(derived_pubkey, _algorithm)
 
         # -- Display confirmation flow ------------------------------------
         network_name = _NETWORK_NAMES.get(
